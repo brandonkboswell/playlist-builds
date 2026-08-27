@@ -1,0 +1,37 @@
+name: Update Short.io download links
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to point the links at (e.g. 0.67.0)
+        required: true
+      dry_run:
+        description: Log the intended changes without writing them
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: update-short-links
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    # Pre-releases should never become the public download.
+    if: github.event_name == 'workflow_dispatch' || github.event.release.prerelease == false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update Short.io links
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHORTIO_API_KEY: ${{ secrets.SHORTIO_API_KEY }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+        run: ./.github/scripts/update-short-links.sh
